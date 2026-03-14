@@ -1,0 +1,51 @@
+{
+    "trip_id": "trip_test_001",
+    "user_id": "driver_123",
+    "start_time": "2026-03-14T10:00:00Z",
+    "end_time": "2026-03-14T10:22:00Z",
+    "distance_km": 8.4,
+    "sensor_windows": [
+        {
+            "timestamp": "2026-03-14T10:05:00Z",
+            "lat": 46.7712,
+            "lng": 23.6236,
+            "accel_magnitude_max": 4.8,
+            "speed_change_rate": -4.5,
+            "lateral_g": 0.1,
+            "gyro_z_mean": 0.02,
+            "speed_ms": 13.8,
+            "heading_change_deg": 2.0
+        },
+        {
+            "timestamp": "2026-03-14T10:12:00Z",
+            "lat": 46.7750,
+            "lng": 23.6300,
+            "accel_magnitude_max": 3.9,
+            "speed_change_rate": 3.8,
+            "lateral_g": 0.12,
+            "gyro_z_mean": 0.15,
+            "speed_ms": 16.6,
+            "heading_change_deg": 3.0
+        }
+    ],
+    "gps_polyline": [
+        {
+            "lat": 46.7712,
+            "lng": 23.6236,
+            "ts": "2026-03-14T10:00:00Z",
+            "speed_ms": 0
+        },
+        {
+            "lat": 46.7720,
+            "lng": 23.6240,
+            "ts": "2026-03-14T10:01:00Z",
+            "speed_ms": 8.3
+        },
+        {
+            "lat": 46.7750,
+            "lng": 23.6300,
+            "ts": "2026-03-14T10:12:00Z",
+            "speed_ms": 13.8
+        }
+    ]
+}
