@@ -1,0 +1,37 @@
+# Credențiale — NICIODATĂ în Git
+*.json.key
+serviceAccountKey.json
+.env
+**/serviceAccountKey.json
+**/.env
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/venv/
+**/*.egg-info/
+**/dist/
+**/build/
+**/.pytest_cache/
+**/sessions.db
+**/*.db
+
+# Node / React Native
+**/node_modules/
+**/.expo/
+**/android/
+**/ios/
+**/*.jks
+**/*.keystore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+**/logs/
