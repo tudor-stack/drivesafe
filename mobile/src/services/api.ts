@@ -1,28 +1,26 @@
 /**
  * src/services/api.ts
- * Singurul fișier din Mobile care știe URL-ul Backend-ului.
- * Persoana 3 implementează toate apelurile API aici.
+ * Varianta de Hackathon - Fără Firebase, direct IP-ul local.
  */
 import axios from 'axios';
-import auth from '@react-native-firebase/auth';
 
-const BASE_URL = __DEV__
-  ? 'http://localhost:8000'                              // dev local
-  : 'https://drivesafe-backend-xxxx-ew.a.run.app';      // TODO: înlocuiește cu URL-ul real Cloud Run
+// =========================================================================
+// !!! CRITIC: PUNE IP-UL TĂU DE WI-FI AICI !!!
+// Nu folosi 192.168.56.1 (ăla e de la VirtualBox).
+// Caută în ipconfig -> "Wireless LAN adapter Wi-Fi" -> IPv4 Address.
+// =========================================================================
+const BACKEND_IP = '10.168.122.94'; // <-- MODIFICĂ AICI!
+const BASE_URL = `http://${BACKEND_IP}:8000`;
 
 const api = axios.create({ baseURL: BASE_URL });
 
-// Interceptor: adaugă automat Firebase JWT la fiecare request
+// Interceptor măsluit: adaugă un token fals ca să nu crăpăm dacă backend-ul cere unul
 api.interceptors.request.use(async (config) => {
-  const user = auth().currentUser;
-  if (user) {
-    const token = await user.getIdToken();
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  config.headers.Authorization = `Bearer hackathon_demo_token`;
   return config;
 });
 
-// ── Trips ─────────────────────────────────────────────────────────────────
+// ── Interfețele rămân intacte ─────────────────────────────────────────────
 
 export interface SensorWindow {
   timestamp: string;
@@ -77,8 +75,10 @@ export interface TripDetail extends TripSummary {
   coach_report: string;
 }
 
+// ── API Calls ─────────────────────────────────────────────────────────────
+
 export const tripsApi = {
-  /** Trimite datele cursei pentru procesare AI */
+  /** Trimite datele cursei pentru procesare AI către Python */
   processTrip: async (data: {
     trip_id: string;
     start_time: string;
@@ -91,24 +91,18 @@ export const tripsApi = {
     return res.data;
   },
 
-  /** Obține istoricul curselor */
+  /** Funcții mockuite pentru a nu crăpa interfața dacă le apelezi din greșeală */
   getHistory: async (limit = 20, offset = 0): Promise<{ trips: TripSummary[]; total: number }> => {
-    const res = await api.get('/api/trips/history', { params: { limit, offset } });
-    return res.data;
+    return { trips: [], total: 0 };
   },
 
-  /** Obține detaliile complete ale unei curse */
-  getTripDetail: async (tripId: string): Promise<TripDetail> => {
-    const res = await api.get(`/api/trips/${tripId}`);
-    return res.data;
+  getTripDetail: async (tripId: string): Promise<any> => {
+    return null;
   },
 };
 
-// ── Users ──────────────────────────────────────────────────────────────────
-
 export const usersApi = {
   getMe: async () => {
-    const res = await api.get('/api/users/me');
-    return res.data;
+    return { name: "User Demo Hackathon" };
   },
 };

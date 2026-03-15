@@ -1,11 +1,10 @@
 """
 app/services/firestore_service.py — Toate operațiunile cu Firestore
-Persoana 1 implementează, Persoana 2 (AI) apelează direct Firebase Admin SDK.
 """
 import os
 import firebase_admin
-from firebase_admin import credentials, firestore
-
+from firebase_admin import credentials, firestore_async
+from google.cloud.firestore import Query, Increment # Importuri specifice pentru queries si contoare
 
 class FirestoreService:
     def __init__(self):
@@ -14,27 +13,28 @@ class FirestoreService:
                 os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "./serviceAccountKey.json")
             )
             firebase_admin.initialize_app(cred)
-        self.db = firestore.client()
+        
+        # Acum inițializăm clientul ASINCRON, nu cel clasic
+        self.db = firestore_async.client()
 
     async def save_trip(self, trip_id: str, data: dict):
-        self.db.collection("trips").document(trip_id).set(data)
+        # Așteptăm (await) răspunsul de la rețea fără să blocăm restul serverului
+        await self.db.collection("trips").document(trip_id).set(data)
 
     async def get_trip(self, trip_id: str) -> dict | None:
-        doc = self.db.collection("trips").document(trip_id).get()
+        doc = await self.db.collection("trips").document(trip_id).get()
         return doc.to_dict() if doc.exists else None
 
     async def get_user_trips(self, user_id: str, limit: int = 20, offset: int = 0) -> list:
-        docs = (
+        # Tot ce e mai jos trebuie sa aiba 4 spatii/1 tab in fata!
+        query = (
             self.db.collection("trips")
             .where("user_id", "==", user_id)
-            .where("status", "==", "done")
-            .order_by("start_time", direction=firestore.Query.DESCENDING)
             .limit(limit)
-            .stream()
         )
-        # Returnăm doar câmpurile necesare pentru lista de istoric
+        
         result = []
-        for doc in docs:
+        async for doc in query.stream():
             d = doc.to_dict()
             result.append({
                 "trip_id": doc.id,
@@ -48,11 +48,12 @@ class FirestoreService:
         return result
 
     async def update_user_score(self, user_id: str, score: float, trip_id: str):
-        self.db.collection("users").document(user_id).set(
+        # Await pe scrierea merge
+        await self.db.collection("users").document(user_id).set(
             {
                 "last_trip_score": score,
                 "last_trip_id": trip_id,
-                "total_trips": firestore.Increment(1),
+                "total_trips": Increment(1),
             },
             merge=True,
         )
