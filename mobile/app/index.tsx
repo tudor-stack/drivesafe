@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { sensorService } from '../src/services/sensorService'; // Asigură-te că calea e corectă
+import { sensorService } from '../src/services/sensorService';
+import { tripsApi } from '../src/services/api'; // IMPORT CRITIC LIPSĂ
 
 export default function Dashboard() {
     const [isTracking, setIsTracking] = useState(false);
@@ -16,15 +17,36 @@ export default function Dashboard() {
                 Alert.alert("Eroare", "Nu am putut porni senzorii. Ai dat permisiunea de locație?");
             }
         } else {
+            // 1. Oprim senzorii și salvăm datele local
             const data = sensorService.stopRecording();
             setIsTracking(false);
             setLastTripData(data);
 
-            // Aici vezi dacă ai mișcat destul de tare telefonul!
-            Alert.alert(
-                "Cursă Oprită",
-                `Am înregistrat ${data.sensor_windows.length} evenimente periculoase și ${data.gps_polyline.length} puncte GPS.`
-            );
+            // 2. PARTEA LIPSĂ: Trimitem datele la Backend-ul de Python
+            try {
+                const payload = {
+                    trip_id: `trip_${Date.now()}`,
+                    sensor_windows: data.sensor_windows,
+                    gps_polyline: data.gps_polyline,
+                    start_time: new Date().toISOString(),
+                    end_time: new Date().toISOString(),
+                    distance_km: 0.5 // Valoare de test
+                };
+
+                // Aici telefonul "strigă" laptopul folosind IP-ul din api.ts
+                const response = await tripsApi.processTrip(payload);
+
+                Alert.alert(
+                    "Analiză AI Completă",
+                    `Evenimente: ${data.sensor_windows.length}\nScor obținut: ${response.global_score ?? 'Fără scor'}`
+                );
+            } catch (err) {
+                console.error(err);
+                Alert.alert(
+                    "Eroare de Conexiune",
+                    "Senzorii au oprit cursa, dar laptopul nu a răspuns. Verifică IP-ul sau Firewall-ul!"
+                );
+            }
         }
     };
 
