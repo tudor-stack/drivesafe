@@ -5,26 +5,97 @@ import os
 from google.adk.tools import FunctionTool
 
 
-async def get_road_context(lat: float, lng: float) -> dict:
+async def get_road_context(lat: float, lng: float, speed_ms: float = 0.0) -> dict:
     """
-    Determines road context for GPS coordinates.
-
-    Args:
-        lat: Latitude (ex: 46.7712)
-        lng: Longitude (ex: 23.6236)
-
-    Returns:
-        dict with road_type, speed_limit_kmh, near_traffic_light, context_multiplier
+    Determines road context using Nominatim (OpenStreetMap) - no API key needed.
+    Falls back to speed-based classification if API unavailable.
     """
-    # TODO: replace with Google Roads API
-    return {
-        "road_type": "urban",
-        "speed_limit_kmh": 50.0,
-        "near_traffic_light": False,
-        "context_multiplier": 1.0,
-        "zone_description": "Urban area, standard speed limit",
-    }
+    import httpx
 
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(
+                "https://nominatim.openstreetmap.org/reverse",
+                params={
+                    "lat": lat,
+                    "lon": lng,
+                    "format": "json",
+                    "addressdetails": 1,
+                    "extratags": 1,
+                },
+                headers={"User-Agent": "DriveSafe/1.0"}
+            )
+            data = resp.json()
+            if not isinstance(data, dict):
+                raise ValueError(f"Invalid response: {data}")
+
+        extra_tags = data.get("extratags") or {}
+        # Folosim 'class' pentru a verifica dacă e drum
+        osm_class = data.get("class", "")
+        road_type_osm = data.get("type", "")
+
+        # Dacă nu e highway, cautam in address
+        if osm_class != "highway":
+            # Nu e un drum direct - folosim address pentru context
+            address = data.get("address", {})
+            road_name = address.get("road", "").lower()
+            
+            if any(x in road_name for x in ["autostrada", "motorway", "a1", "a2", "a3"]):
+                road_type_osm = "motorway"
+            elif any(x in road_name for x in ["national", "dn", "european"]):
+                road_type_osm = "primary"
+            else:
+                road_type_osm = "residential"
+
+
+        road_type_osm = data.get("type", "")
+        maxspeed = extra_tags.get("maxspeed", "")
+
+        # Parse speed limit if available
+        speed_limit = None
+        if maxspeed and maxspeed.isdigit():
+            speed_limit = float(maxspeed)
+
+        # Determine road type from OSM classification
+        if road_type_osm in ["motorway", "trunk"]:
+            road_type = "highway"
+            speed_limit = speed_limit or 130.0
+            context_multiplier = 0.7
+        elif road_type_osm in ["primary", "secondary", "tertiary"]:
+            road_type = "rural"
+            speed_limit = speed_limit or 90.0
+            context_multiplier = 0.9
+        else:
+            road_type = "urban"
+            speed_limit = speed_limit or 50.0
+            context_multiplier = 1.0
+
+        street_name = data.get("display_name", "unknown").split(",")[0]
+
+        return {
+            "road_type": road_type,
+            "speed_limit_kmh": speed_limit,
+            "near_traffic_light": False,
+            "context_multiplier": context_multiplier,
+            "zone_description": f"{road_type.capitalize()} road, {speed_limit}km/h limit",
+            "street_name": street_name,
+        }
+
+    except Exception as e:
+        print(f"[Nominatim] Error: {e} — speed-based fallback")
+        speed_kmh = speed_ms * 3.6
+        if speed_kmh >= 90:
+            return {"road_type": "highway", "speed_limit_kmh": 130.0,
+                    "near_traffic_light": False, "context_multiplier": 0.7,
+                    "zone_description": "Highway (speed-based)"}
+        elif speed_kmh >= 60:
+            return {"road_type": "rural", "speed_limit_kmh": 90.0,
+                    "near_traffic_light": False, "context_multiplier": 0.9,
+                    "zone_description": "Rural (speed-based)"}
+        else:
+            return {"road_type": "urban", "speed_limit_kmh": 50.0,
+                    "near_traffic_light": False, "context_multiplier": 1.0,
+                    "zone_description": "Urban (speed-based)"}
 
 async def compute_risk_score(
     behavior_type: str,
