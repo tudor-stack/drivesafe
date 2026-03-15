@@ -28,7 +28,7 @@ from .prompts import (
 # Determines road context (road type, speed limit, traffic light)
 context_agent = LlmAgent(
     name="context_agent",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash-lite",
     description="Determines road context for GPS coordinates of the event.",
     instruction=CONTEXT_AGENT_INSTRUCTION,
     tools=[get_road_context_tool],
@@ -40,14 +40,14 @@ context_agent = LlmAgent(
 
 behavior_analyzer = LlmAgent(
     name="behavior_analyzer",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash-lite",
     description="Classifies dangerous driving behavior from sensor feature vectors.",
     instruction=BEHAVIOR_ANALYZER_INSTRUCTION,
 )
 
 risk_scorer = LlmAgent(
     name="risk_scorer",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash-lite",
     description="Calculates contextual risk score for detected behavior.",
     instruction=RISK_SCORER_INSTRUCTION,
     tools=[compute_risk_score_tool],
@@ -55,7 +55,7 @@ risk_scorer = LlmAgent(
 
 reflexion_agent = LlmAgent(
     name="reflexion_agent",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash-lite",
     description="Verifies risk score is contextually correct. Decides GO or RETRY.",
     instruction=REFLEXION_AGENT_INSTRUCTION,
 )
@@ -72,7 +72,7 @@ risk_refinement_loop = LoopAgent(
 
 trip_summary_agent = LlmAgent(
     name="trip_summary_agent",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash-lite",
     description="Aggregates processed events into final document and saves to Firestore.",
     instruction=TRIP_SUMMARY_AGENT_INSTRUCTION,
     tools=[save_trip_to_firestore_tool, send_fcm_notification_tool],
@@ -80,7 +80,7 @@ trip_summary_agent = LlmAgent(
 
 coach_agent = LlmAgent(
     name="coach_agent",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash-lite",
     description="Generates personalized coaching report for the beginner driver.",
     instruction=COACH_AGENT_INSTRUCTION,
 )
